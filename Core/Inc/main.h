@@ -57,6 +57,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LED_STATUS_Pin GPIO_PIN_13
+#define LED_STATUS_GPIO_Port GPIOC
+#define LOCK_Input_Pin GPIO_PIN_0
+#define LOCK_Input_GPIO_Port GPIOA
+#define LOCK_InputA1_Pin GPIO_PIN_1
+#define LOCK_InputA1_GPIO_Port GPIOA
+#define LOCK_Output_Pin GPIO_PIN_0
+#define LOCK_Output_GPIO_Port GPIOB
+#define LOCK_OutputB1_Pin GPIO_PIN_1
+#define LOCK_OutputB1_GPIO_Port GPIOB
+#define RS485_Output_Pin GPIO_PIN_12
+#define RS485_Output_GPIO_Port GPIOB
+#define USART_TX_Pin GPIO_PIN_9
+#define USART_TX_GPIO_Port GPIOA
+#define USART_RX_Pin GPIO_PIN_10
+#define USART_RX_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
