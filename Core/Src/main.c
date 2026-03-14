@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Modbus.h"
 
 /* USER CODE END Includes */
 
@@ -47,8 +48,20 @@ UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
 
-osThreadId ModbusTaskHandle;
-osThreadId LocksTaskHandle;
+/* Definitions for ModbusTask */
+osThreadId_t ModbusTaskHandle;
+const osThreadAttr_t ModbusTask_attributes = {
+  .name = "ModbusTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+/* Definitions for LocksTask */
+osThreadId_t LocksTaskHandle;
+const osThreadAttr_t LocksTask_attributes = {
+  .name = "LocksTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -59,8 +72,8 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
-void ModbusRTU(void const * argument);
-void TaskLocks(void const * argument);
+void ModbusRTU(void *argument);
+void TaskLocks(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -107,6 +120,9 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -124,17 +140,19 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* definition and creation of ModbusTask */
-  osThreadDef(ModbusTask, ModbusRTU, osPriorityAboveNormal, 0, 128);
-  ModbusTaskHandle = osThreadCreate(osThread(ModbusTask), NULL);
+  /* creation of ModbusTask */
+  ModbusTaskHandle = osThreadNew(ModbusRTU, NULL, &ModbusTask_attributes);
 
-  /* definition and creation of LocksTask */
-  osThreadDef(LocksTask, TaskLocks, osPriorityAboveNormal, 0, 128);
-  LocksTaskHandle = osThreadCreate(osThread(LocksTask), NULL);
+  /* creation of LocksTask */
+  LocksTaskHandle = osThreadNew(TaskLocks, NULL, &LocksTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
   osKernelStart();
@@ -358,7 +376,7 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_ModbusRTU */
-void ModbusRTU(void const * argument)
+void ModbusRTU(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
@@ -376,7 +394,7 @@ void ModbusRTU(void const * argument)
 * @retval None
 */
 /* USER CODE END Header_TaskLocks */
-void TaskLocks(void const * argument)
+void TaskLocks(void *argument)
 {
   /* USER CODE BEGIN TaskLocks */
   /* Infinite loop */
