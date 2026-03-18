@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Modbus.h"
+#include "stm32f4xx_hal_gpio.h"
 
 /* USER CODE END Includes */
 
@@ -38,6 +39,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#define MODBUS_REGISTERS_COUNT 10
 
 /* USER CODE END PM */
 
@@ -63,6 +65,14 @@ const osThreadAttr_t LocksTask_attributes = {
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* USER CODE BEGIN PV */
+
+uint16_t modbus_registers[MODBUS_REGISTERS_COUNT] = {0};
+
+// Contains all configuration params (baud rate, parity stop, bits) 
+extern UART_HandleTypeDef huart1;
+
+// Initialize modbus variable that contains all required operations
+modbusHandler_t ModbusHandler;
 
 /* USER CODE END PV */
 
@@ -353,12 +363,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LOCK_Output_Pin LOCK_OutputB1_Pin RS485_Output_Pin */
-  GPIO_InitStruct.Pin = LOCK_Output_Pin|LOCK_OutputB1_Pin|RS485_Output_Pin;
+  /*Configure GPIO pins : LOCK_Output_Pin LOCK_OutputB1_Pin */
+  GPIO_InitStruct.Pin = LOCK_Output_Pin|LOCK_OutputB1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RS485_Output_Pin */
+  GPIO_InitStruct.Pin = RS485_Output_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(RS485_Output_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -379,10 +396,31 @@ static void MX_GPIO_Init(void)
 void ModbusRTU(void *argument)
 {
   /* USER CODE BEGIN 5 */
+
+  // Configure Modbus Handler
+  ModbusHandler.uModbusType = MB_SLAVE;
+  ModbusHandler.port = &huart1;
+
+  ModbusHandler.u8id = 2; // Set a Slave ID
+  ModbusHandler.u16timeOut = 1000;
+
+  // Setup RS485
+  ModbusHandler.EN_Port = RS485_Output_GPIO_Port;
+  ModbusHandler.EN_Pin = RS485_Output_Pin;
+
+  // Setup Modbus Registers
+  ModbusHandler.u16regs = modbus_registers;
+  ModbusHandler.u16regsize = MODBUS_REGISTERS_COUNT;
+  ModbusHandler.xTypeHW = USART_HW_DMA;
+
+  // Initialize and Start
+  ModbusInit(&ModbusHandler);
+  ModbusStart(&ModbusHandler);
+  
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(1000);
   }
   /* USER CODE END 5 */
 }
@@ -400,7 +438,13 @@ void TaskLocks(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    if (modbus_registers[0] == 1)
+    {
+      HAL_GPIO_WritePin(LOCK_Output_GPIO_Port, LOCK_Output_Pin, GPIO_PIN_SET);
+
+      // modbus_registers[0] = 0;
+    }
+    osDelay(100);
   }
   /* USER CODE END TaskLocks */
 }
